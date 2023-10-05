@@ -1,7 +1,10 @@
 #ifndef OBJECT_HPP
 #define OBJECT_HPP
 
+#define NO_INTERSECTION 10e9
+
 #include <glm/glm.hpp>
+#include <iostream>
 
 using namespace glm;
 
@@ -11,30 +14,37 @@ class Object
         virtual float trace(vec3 ray, vec3 origin);
 };
 
-class sphere : public Object
+class Sphere : public Object
 {
     private :
 
-        float radius;
-        vec3 position;
 
     public :
+        float radius;
+        vec3 position;
 
         float trace(vec3 ray, vec3 origin);
 
 };
 
-float sphere::trace(vec3 ray, vec3 origin)
+float Sphere::trace(vec3 ray, vec3 origin)
 {
-    /*
-    */
-    vec3 AC = origin-position;
-    float norm = dot(ray, AC) * length(AC);
+    vec3 AC = normalize(position - origin);
+    float norm = dot(ray, AC) / length(AC);
 
-    // vec3 Cbis()
+    // on calcul la projection du centre de la sphère sur la droite 
+    vec3 Cbis = origin + ray*norm;
 
-    // https://moodle.umontpellier.fr/pluginfile.php/2358964/mod_resource/content/1/HAI719I-Rappel%20vecteurs.pdf
-    // page 26
+    float res = length(Cbis - position);
+
+    // std::cout << res << "\n";
+
+    if(res <= radius)
+        return res;
+    else
+        return NO_INTERSECTION;
+
+    return res;
 }
 
 

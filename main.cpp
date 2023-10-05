@@ -1,7 +1,7 @@
 #include <Camera.hpp>
 #include <stb/stb_image_write.h>
 #include <memory>
-
+#include <vector>
 #include <Object.hpp>
 
 struct pixel
@@ -15,28 +15,63 @@ int main()
 
     std::shared_ptr<pixel> img(new pixel[res.x*res.y]);
 
-
     Camera camera;
-    camera.setCameraPosition(vec3(1.0, 0.0, 1.0));
-    camera.setForceLookAtPoint(true);
+    camera.init(2, res.x, res.y, 0.1, 100.0);
+    camera.setCameraPosition(vec3(0.0, 0.5, 1.0));
     camera.lookAt(vec3(0.0, 0.0, 0.0));
-    mat4 unproj = inverse(camera.updateProjectionViewMatrix());
+    camera.setForceLookAtPoint(true);
+    camera.updateProjectionViewMatrix();
+    mat4 iViewProj = inverse(camera.getProjectionMatrix());
+    mat4 iProj = inverse(camera.getProjectionMatrix());
+    mat4 iView = inverse(camera.getViewMatrix());
+
+    Sphere s;
+    s.position = vec3(0, 0, 0);
+    s.radius = 0.5;
+
+    float uvStep = 2.0/(float)res.x;
+    std::vector<vec2> displascements = 
+    {
+        vec2(0.0, 0.0),
+        uvStep*vec2(0.1548, 0.0358),
+        uvStep*vec2(-0.0168, -1.0812),
+        uvStep*vec2(-0.7581, 0.5893),
+        uvStep*vec2(0.0589, -0.2568)
+    };
+    int nbSample = 4;
 
     int id = 0;
     for(int i = 0; i < res.x; i++)
     for(int j = 0; j < res.y; j++)
     {
-        vec3 color(0.0);
-        vec2 uv((float)i/(float)res.x, (float)j/(float)res.y);
+        vec3 fragColor(0.0);
 
-        vec3 direction = camera.getPosition() - vec3(vec4(uv.x*2.0 - 1.0, uv.y*2.0 - 1.0, 0.0, 1.0)*unproj);
-        
-        color = normalize(direction)*vec3(0.5) + vec3(0.5);
+        for(size_t k = 0; k < nbSample; k++)
+        {
+            vec3 color(0);
 
-        img.get()[id].r = color.x*255;
-        img.get()[id].g = color.y*255;
-        img.get()[id].b = color.z*255;
+            vec2 uv((float)j/(float)res.y, (float)i/(float)res.x);
+            uv = uv*vec2(2.0) - vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1.0/2E5);
 
+            vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
+            vec3 far = vec3(spf)/spf.w;
+            vec4 spn = iViewProj * vec4(uv.x, uv.y, 0.0, 1.0);
+            vec3 near = vec3(spn)/spn.w;
+            vec3 direction = normalize(far - near);
+
+
+            
+            // color = direction;
+            color.r = 1.0 - s.trace(direction, camera.getPosition()); 
+
+            color = max(min(color, vec3(1.0)), vec3(0.0));
+
+            fragColor += color;
+        }
+        fragColor = fragColor/vec3(nbSample);
+        img.get()[id].r = fragColor.x*255;
+        img.get()[id].g = fragColor.y*255;
+        img.get()[id].b = fragColor.z*255;
         id ++;
     }
 
