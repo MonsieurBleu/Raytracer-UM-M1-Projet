@@ -36,6 +36,19 @@ class Sphere : public Object
 
 };
 
+class Rectangle : public Object
+{
+    private : 
+        vec3 normal;
+
+    public : 
+        vec3 halfSize;
+        vec3 position;
+
+        void setNormale(vec3 n);      
+        rayContact trace(vec3 ray, vec3 origin);
+};
+
 void Sphere::setRadius(float r)
 {
     radius = r;
@@ -64,88 +77,26 @@ rayContact Sphere::trace(vec3 ray, vec3 origin)
     return result;
 }
 
+void Rectangle::setNormale(vec3 n)
+{
+    normal = normalize(n);
+}
 
-// {
-//     rayContact result;
-//     vec3 v = origin - center;
+rayContact Rectangle::trace(vec3 ray, vec3 origin)
+{
+    rayContact result;
+    result.t = (dot(position, normal)-dot(origin, normal))/dot(ray, normal);
 
-//     float a = dot(ray, ray);
-//     float b = 2 * dot(ray, v);
-//     float c = dot(v, v) - radius * radius;
+    result.t = result.t < 0.0 || result.t == NAN || result.t == INFINITY ? NO_INTERSECTION : result.t;
 
-//     float delta = b * b - 4 * a * c;
-//     if (delta < 0)
-//     {
-//         return result;
-//     }
+    result.position = origin + ray*result.t;
+    result.normal = normal;
 
-//     float t1 = (-b - sqrt(delta)) / (2 * a);
-//     float t2 = (-b + sqrt(delta)) / (2 * a);
+    // Use the halfsize to check if the point on the plane is inside the rectangle 
+    result.t = length(position-result.position) > 1.1 ? NO_INTERSECTION : result.t;
 
-//     if (t1 < 0.0001f && t2 < 0.0001f)
-//     {
-//         return result;
-//     }
+    return result;
+}
 
-//     if (t1 < 0.0001f)
-//     {
-//         result.t = t2;
-//     }
-//     else if (t2 < 0.0001f)
-//     {
-//         result.t = t1;
-//     }
-//     else
-//     {
-//         result.t = min(t1, t2);
-//     }
-
-//     result.position = origin + ray * result.t;
-
-//     result.normal = normalize(result.position - center);
-
-//     return result;
-// }
-
-
-
-
-// {
-//     rayContact result;
-
-//     vec3 AC = center - origin;
-//     float norm = dot(ray, AC) / length(AC);
-
-//     /*
-//         We check if the potential intersection point is
-//         behind or in front of the origin
-
-//         dot(Cbis-origin, ray) < 0 
-//         can be replace with 
-//         norm < 0
-
-//         because :
-//             dot(Cbis-origin, ray) = dot(ray*norm, ray) = norm*||ray||²
-//             if ray < 0 then dot(ray*norm, ray) < 0
-//     */
-//     // if(norm < 0)
-//     //     return result;
-
-//     // sphere center projection on the ray line
-//     vec3 Cbis = origin + ray*norm;
-
-//     // cosine of the intersection point 
-//     float res = length(Cbis - center);
-
-//     // if(res > radius)
-//     //     return result;
-
-//     result.t = sin(acos(res));
-//     // result.position = Cbis + ray*result.t;
-//     result.position = Cbis;
-//     result.normal = normalize(center-result.position);
-
-//     return result;
-// }
 
 #endif

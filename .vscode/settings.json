@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "new": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "*.tcc": "cpp",
+        "type_traits": "cpp"
     }
 }
