@@ -2,8 +2,9 @@
 #include <stb/stb_image_write.h>
 #include <memory>
 #include <vector>
-#include <Object.hpp>
 #include <Timer.hpp>
+#include <PhongLights.hpp>
+#include <Scene.hpp>
 
 struct pixel
 {
@@ -19,22 +20,79 @@ int main()
     CameraState cs;
     Camera camera;
     camera.init(radians(70.0f), res.x, res.y, 0.1, 10000.0);
-    camera.setCameraPosition(vec3(0.0, -2.0, 0.1));
-    camera.lookAt(vec3(0.0, 0.0, 0.0));
+    camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
+    camera.lookAt(vec3(0.0, 2.0, 0.0));
     camera.setForceLookAtPoint(true);
     camera.updateProjectionViewMatrix(); 
     mat4 iViewProj = inverse(camera.getProjectionViewMatrix());
     // mat4 iProj = inverse(camera.getProjectionMatrix());
     // mat4 iView = inverse(camera.getViewMatrix());
 
-    Sphere s;
-    s.center = vec3(0, 0, 0);
-    s.setRadius(0.5);
+    std::shared_ptr<Sphere> s(new Sphere);
+    s->center = vec3(1, 1.0, 1);
+    s->setRadius(0.85);
+    s->color = vec3(1.0, 0.5, 0.1);
+
+    std::shared_ptr<Sphere> s2(new Sphere);
+    s2->center = vec3(0, 1.0, -1);
+    s2->setRadius(0.85);
+    s2->color = vec3(0.1, 0.5, 1.0);
    
-    Rectangle r;
-    r.position = vec3(0.0, 0.0, 0.0); 
-    r.setNormale(-vec3(0.0, 1.0, 0.0));
-    r.halfSize = vec3(1.0);
+    
+    float BoxSize = 4.0;
+    std::shared_ptr<Quad> r(new Quad(
+        vec3( 0.5, 0.f,  0.5)*vec3(BoxSize), 
+        vec3(-0.5, 0.f, -0.5)*vec3(BoxSize), 
+        vec3(-0.5, 0.f,  0.5)*vec3(BoxSize), 
+        vec3( 0.5, 0.f, -0.5)*vec3(BoxSize)
+    ));
+    r->color = vec3(1.0);
+    r->position = vec3(0.0, 0.0, 0.0);
+
+    std::shared_ptr<Quad> r2(new Quad(
+        vec3( 0.5,  1, 0.f)*vec3(BoxSize), 
+        vec3(-0.5,  0, 0.f)*vec3(BoxSize), 
+        vec3(-0.5,  1, 0.f)*vec3(BoxSize), 
+        vec3( 0.5,  0, 0.f)*vec3(BoxSize)
+    ));
+    r2->color = vec3(1.0, 0.1, 0.1);
+    r2->invertNormal = true;
+    r2->position = vec3(0.0, 0.0, -BoxSize*0.5);
+
+    std::shared_ptr<Quad> r3(new Quad(
+        vec3( 0.5,  1, 0.f)*vec3(BoxSize), 
+        vec3(-0.5,  0, 0.f)*vec3(BoxSize), 
+        vec3(-0.5,  1, 0.f)*vec3(BoxSize), 
+        vec3( 0.5,  0, 0.f)*vec3(BoxSize)
+    ));
+    r3->color = vec3(0.1, 1.0, 0.5);
+    r3->position = vec3(0.0, 0.0, 2.0);
+
+    std::shared_ptr<Quad> r4(new Quad(
+        vec3( 0.5, 0.f,  0.5)*vec3(BoxSize), 
+        vec3(-0.5, 0.f, -0.5)*vec3(BoxSize), 
+        vec3(-0.5, 0.f,  0.5)*vec3(BoxSize), 
+        vec3( 0.5, 0.f, -0.5)*vec3(BoxSize)
+    ));
+    r4->color = vec3(1.0);
+    r4->position = vec3(0.0, BoxSize, 0.0);
+    r4->invertNormal = true;
+    
+
+    std::shared_ptr<Quad> r5(new Quad(
+        vec3(0.f,  1,  0.5)*vec3(BoxSize), 
+        vec3(0.f,  0, -0.5)*vec3(BoxSize), 
+        vec3(0.f,  1, -0.5)*vec3(BoxSize), 
+        vec3(0.f,  0,  0.5)*vec3(BoxSize)
+    ));
+    r5->color = vec3(0.5, 0.1, 1.0);
+    r5->position = vec3(-BoxSize*0.5, 0.0, 0.0);
+
+    r->genNormalMinMax();
+    r2->genNormalMinMax();
+    r3->genNormalMinMax();
+    r4->genNormalMinMax();
+    r5->genNormalMinMax();
 
     float uvStep = 2.0/(float)res.x;
     std::vector<vec2> displascements = 
@@ -47,10 +105,25 @@ int main()
     };
     int nbSample = 4;
 
+    PhongLight sun;
+    // sun.direction = normalize(vec3(-1, -0.5, 0));
+    sun.position = vec3(4, 3, 0);
+    sun.color = vec3(1.0, 1.0, 1.0);
+    sun.intensity = 1.0;
+    sun.radius = 10.0;
+
+    Scene scene;
+    scene.add(s);
+    scene.add(s2);
+    scene.add(r);
+    scene.add(r2);
+    scene.add(r3);
+    scene.add(r4);
+    scene.add(r5);
+    scene.add(sun);
+
     BenchTimer timer("frame time");
     timer.start();
-
-    vec3 sunDir = normalize(vec3(0.0, -1.0, -10.0));
 
     int id = 0;
     for(int i = 0; i < res.x; i++)
@@ -63,24 +136,18 @@ int main()
             vec3 color(0);
 
             vec2 uv((float)j/(float)res.y, (float)i/(float)res.x);
-            uv = uv*vec2(2.0) - vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1.0/2E5);
+            uv = -uv*vec2(2.0) + vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1.0/2E5);
 
             // near can be remplaced with camera.getPosition
             vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
             vec3 far = vec3(spf)/spf.w;
-            vec4 spn = iViewProj * vec4(uv.x, uv.y, 0.0, 1.0);
-            vec3 near = vec3(spn)/spn.w;
-            vec3 direction = normalize(far - near);
-   
+            // vec4 spn = iViewProj * vec4(uv.x, uv.y, 0.0, 1.0);
+            // vec3 near = vec3(spn)/spn.w;
+            vec3 direction = normalize(far - camera.getPosition());
 
-            rayContact test = s.trace(direction, near); 
-            if(test.t != NO_INTERSECTION)
-                color = vec3(max(dot(test.normal, sunDir), 0.f) + 0.2);
+            rayContact rc = scene.getResult(direction, camera.getPosition());
 
-            rayContact test2 = r.trace(direction, near);
-            if(test2.t < test.t)
-                color = mix(vec3(0.f, max(dot(test2.normal, sunDir), 0.f) + 0.2, 0.f), color, 0.5);
-
+            color = rc.color;
 
             color = max(min(color, vec3(1.0)), vec3(0.0)); 
             fragColor += color;
