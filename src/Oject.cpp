@@ -20,12 +20,12 @@ rayContact Sphere::trace(vec3 ray, vec3 origin)
     float c = oc.x*oc.x + oc.y*oc.y + oc.z*oc.z - radiusSquared;
     
     float sqrtDelta = sqrtf(b*b - a*c);
-    float x1 = (-b-sqrtDelta)/a;
-    float x2 = (-b+sqrtDelta)/a;
+    float x1 = -b-sqrtDelta;
+    float x2 = -b+sqrtDelta;
 
     x1 = x1 < 0.f ? NO_INTERSECTION : x1;
     x2 = x2 < 0.f ? NO_INTERSECTION : x2;
-    result.t = x1 < x2 ? x1 : x2;
+    result.t = x1 < x2 ? x1/a : x2/a;
         
     result.position = origin + ray*result.t;
     result.normal = normalize(result.position - center);

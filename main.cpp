@@ -95,14 +95,14 @@ int main()
     r5->genNormalMinMax();
 
     float uvStep = 2.0/(float)res.x;
-    std::vector<vec2> displascements = 
-    {
-        vec2(0.0, 0.0),
-        uvStep*vec2(0.1548, 0.0358),
-        uvStep*vec2(-0.0168, -1.0812),
-        uvStep*vec2(-0.7581, 0.5893),
-        uvStep*vec2(0.0589, -0.2568)
-    };
+    // std::vector<vec2> displascements = 
+    // {
+    //     vec2(0.0, 0.0),
+    //     uvStep*vec2(0.1548, 0.0358),
+    //     uvStep*vec2(-0.0168, -1.0812),
+    //     uvStep*vec2(-0.7581, 0.5893),
+    //     uvStep*vec2(0.0589, -0.2568)
+    // };
     int nbSample = 4;
 
     PhongLight sun;
@@ -136,13 +136,10 @@ int main()
             vec3 color(0);
 
             vec2 uv((float)j/(float)res.y, (float)i/(float)res.x);
-            uv = -uv*vec2(2.0) + vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1.0/2E5);
+            uv = -uv*vec2(2.0) + vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1E-5);
 
-            // near can be remplaced with camera.getPosition
             vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
             vec3 far = vec3(spf)/spf.w;
-            // vec4 spn = iViewProj * vec4(uv.x, uv.y, 0.0, 1.0);
-            // vec3 near = vec3(spn)/spn.w;
             vec3 direction = normalize(far - camera.getPosition());
 
             rayContact rc = scene.getResult(direction, camera.getPosition());
