@@ -30,7 +30,7 @@ rayContact Scene::getResult(vec3 ray, vec3 origin)
 {
     rayContact firstContact = trace(ray, origin);
 
-    int smoothShadowStep = 32;
+    int smoothShadowStep = 4;
 
     vec3 lightResult = vec3(0);
     rayContact lightContact;

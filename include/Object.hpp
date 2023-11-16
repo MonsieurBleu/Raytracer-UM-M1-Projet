@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 #include <iostream>
+#include <vector>
 
 using namespace glm;
 
@@ -60,6 +61,32 @@ class Quad : public Object
         virtual rayContact trace(vec3 ray, vec3 origin);
 };
 
+class Triangle : public Object
+{
+    private : 
+        float iArea = 1.f;
+        vec3 normal;
+
+        vec3 position[3];
+        vec3 normals[3];
+        vec2 uvs[3];
+
+    public : 
+        void setPoints(vec3 p1, vec3 p2, vec3 p3);
+        void setNormals(vec3 n1, vec3 n2, vec3 n3);
+        void setUVs(vec2 uv1, vec2 uv2, vec2 uv3);
+        rayContact trace(vec3 ray, vec3 origin);
+};
+
+class Mesh : public Object
+{
+    private : 
+        std::vector<Triangle> triangles;
+
+    public : 
+        void readOBJ(std::string filePath);
+        rayContact trace(vec3 ray, vec3 origin);
+};
 
 
 #endif
