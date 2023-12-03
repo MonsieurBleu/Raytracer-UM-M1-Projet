@@ -20,8 +20,10 @@ int main()
     CameraState cs;
     Camera camera;
     camera.init(radians(70.0f), res.x, res.y, 0.1, 10000.0);
-    camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
-    camera.lookAt(vec3(0.0, 2.0, 0.0));
+    // camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
+    // camera.lookAt(vec3(0.0, 2.0, 0.0));
+    camera.setCameraPosition(vec3(5.0, 0.0, 0.0));
+    camera.lookAt(vec3(-2.0, -2.0, -2.0));
     camera.setForceLookAtPoint(true);
     camera.updateProjectionViewMatrix(); 
     mat4 iViewProj = inverse(camera.getProjectionViewMatrix());
@@ -37,7 +39,6 @@ int main()
     s2->center = vec3(0, 1.0, -1);
     s2->setRadius(0.85);
     s2->color = vec3(0.1, 0.5, 1.0);
-   
     
     float BoxSize = 4.0;
     std::shared_ptr<Quad> r(new Quad(
@@ -103,7 +104,7 @@ int main()
     //     uvStep*vec2(-0.7581, 0.5893),
     //     uvStep*vec2(0.0589, -0.2568)
     // };
-    int nbSample = 4;
+    int nbSample = 1;
 
     PhongLight sun;
     // sun.direction = normalize(vec3(-1, -0.5, 0));
@@ -112,15 +113,32 @@ int main()
     sun.intensity = 1.0;
     sun.radius = 10.0;
 
+    PhongLight light;
+    light.position = vec3(1, 3.5, 0);
+    light.color = vec3(0.0, 0.5, 1.0);
+    light.intensity = 1.0;
+    light.radius = 10.0;
+
+    std::shared_ptr<Triangle> t1(new Triangle);
+    t1->setPoints(vec3(-1, 3, -1), vec3(-1, 0, -1), vec3(1, 0, 1));
+
+    std::shared_ptr<Mesh> d20(new Mesh);
+    d20->readOBJ("./ressources/d20.obj");
+
+
     Scene scene;
-    scene.add(s);
-    scene.add(s2);
-    scene.add(r);
-    scene.add(r2);
-    scene.add(r3);
-    scene.add(r4);
-    scene.add(r5);
-    scene.add(sun);
+    // scene.add(s);
+    // scene.add(s2);
+    // scene.add(r);
+    // scene.add(r2);
+    // scene.add(r3);
+    // scene.add(r4);
+    // scene.add(r5);
+    // scene.add(sun);
+    // scene.add(light);
+    // scene.add(t1);
+    scene.add(d20);
+    scene.ambientLight = vec3(1.0);
 
     BenchTimer timer("frame time");
     timer.start();
