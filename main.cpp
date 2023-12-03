@@ -23,7 +23,7 @@ int main()
     // camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
     // camera.lookAt(vec3(0.0, 2.0, 0.0));
     camera.setCameraPosition(vec3(5.0, 0.0, 0.0));
-    camera.lookAt(vec3(-2.0, -2.0, -2.0));
+    // camera.lookAt(vec3(-2.0, -2.0, -2.0));
     camera.setForceLookAtPoint(true);
     camera.updateProjectionViewMatrix(); 
     mat4 iViewProj = inverse(camera.getProjectionViewMatrix());
@@ -136,7 +136,7 @@ int main()
     // scene.add(r5);
     // scene.add(sun);
     // scene.add(light);
-    // scene.add(t1);
+    scene.add(t1);
     scene.add(d20);
     scene.ambientLight = vec3(1.0);
 
