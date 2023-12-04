@@ -12,15 +12,18 @@ using namespace glm;
 struct rayContact
 {
     float t = NO_INTERSECTION;
+    float reflectivity = 0.f;
     vec3 position;
     vec3 color;
-    vec3 normal;
+    vec3 normal = vec3(0);
+    vec2 uv;
 };
 
 class Object
 {
     public : 
         vec3 color = vec3(1);
+        float reflectivity;
         virtual rayContact trace(vec3 ray, vec3 origin);
 };
 
@@ -70,11 +73,15 @@ class Triangle : public Object
         vec3 position[3];
         vec3 normals[3];
         vec2 uvs[3];
+        vec3 colors[3];
+
+        bool useVertexColors = false;
 
     public : 
         void setPoints(vec3 p1, vec3 p2, vec3 p3);
         void setNormals(vec3 n1, vec3 n2, vec3 n3);
         void setUVs(vec2 uv1, vec2 uv2, vec2 uv3);
+        void setColors(vec3 c1, vec3 c2, vec3 c3);
         rayContact trace(vec3 ray, vec3 origin);
 };
 
@@ -83,8 +90,15 @@ class Mesh : public Object
     private : 
         std::vector<Triangle> triangles;
 
+        int texW, texH;
+        unsigned char *tex = NULL;
+        vec3 texture(vec2 uv);
+
+        bool useVertexColors = false;
+
     public : 
-        void readOBJ(std::string filePath);
+        void readOBJ(std::string filePath, bool useVertexColors = false);
+        void readTexture(std::string filePath);
         rayContact trace(vec3 ray, vec3 origin);
 };
 

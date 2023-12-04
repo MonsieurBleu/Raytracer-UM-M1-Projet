@@ -43,6 +43,7 @@ class Camera
         void init(float FOV, float width, float height, float nearplane, float farPlane); 
         
         void setCameraPosition(vec3 _position); 
+        void setCameraDirection(vec3 _direction); 
         void lookAt(vec3 _position);
 
         const vec3 getPosition() {return state.position;};
@@ -55,7 +56,7 @@ class Camera
 
         const mat4 getViewMatrix() {return viewMatrix;};
         const mat4 getProjectionMatrix() {return projectionMatrix;};
-        const mat4 getProjectionViewMatrix() {return projectionViewMatrix;};
+            const mat4 getProjectionViewMatrix() {return projectionViewMatrix;};
 
         const mat4* getViewMatrixAddr() {return &viewMatrix;};
         const mat4* getProjectionMatrixAddr() {return &projectionMatrix;};

@@ -18,5 +18,5 @@ class Scene
         Scene& add(PhongLight light);
         rayContact trace(vec3 ray, vec3 origin);
         rayContact getResult(vec3 ray, vec3 origin);
-
+        rayContact getResultReflectivity(vec3 ray, vec3 origin, int maxIt);
 };

@@ -41,6 +41,11 @@ void Camera::setCameraPosition(vec3 _position)
    state.position = _position; 
 } 
 
+void Camera::setCameraDirection(vec3 _direction)
+{ 
+   state.direction = _direction; 
+} 
+
 void Camera::lookAt(vec3 _position)
 {
     state.lookpoint = _position;

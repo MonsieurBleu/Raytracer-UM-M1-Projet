@@ -13,18 +13,30 @@ struct pixel
 
 int main()
 {
-    ivec2 res = vec2(1024, 1024);
+    ivec2 res = vec2(128);
 
     std::shared_ptr<pixel> img(new pixel[res.x*res.y]);
 
     CameraState cs;
     Camera camera;
-    camera.init(radians(70.0f), res.x, res.y, 0.1, 10000.0);
+    // camera.init(radians(50.0f), res.x, res.y, 0.1, 10000.0);
+
+    camera.init(radians(25.0f), res.x, res.y, 0.1, 10000.0);
+
+
     // camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
     // camera.lookAt(vec3(0.0, 2.0, 0.0));
-    camera.setCameraPosition(vec3(5.0, 0.0, 0.0));
-    // camera.lookAt(vec3(-2.0, -2.0, -2.0));
+
+    // camera.setCameraPosition(vec3(25.0, 5.0, 35.0));
+    camera.setCameraPosition(vec3(40.0, 5.0, 25.0));
+    camera.lookAt(vec3(0, 2, 0));
+    // camera.lookAt(vec3(-2.5, 2, 0));
     camera.setForceLookAtPoint(true);
+
+    // camera.setCameraPosition(vec3(5.0, 0.0, 0.0));
+    // camera.setCameraDirection(normalize(vec3(-1, 0, 0)));
+
+
     camera.updateProjectionViewMatrix(); 
     mat4 iViewProj = inverse(camera.getProjectionViewMatrix());
     // mat4 iProj = inverse(camera.getProjectionMatrix());
@@ -108,23 +120,42 @@ int main()
 
     PhongLight sun;
     // sun.direction = normalize(vec3(-1, -0.5, 0));
-    sun.position = vec3(4, 3, 0);
-    sun.color = vec3(1.0, 1.0, 1.0);
-    sun.intensity = 1.0;
-    sun.radius = 10.0;
+    sun.position = vec3(5E2)*normalize(vec3(-7, 6, 2.7));
+    sun.color = vec3(1.0, 0.95, 0.8);
+    sun.intensity = 1.5;
+    sun.radius = 1E4;
 
     PhongLight light;
-    light.position = vec3(1, 3.5, 0);
-    light.color = vec3(0.0, 0.5, 1.0);
-    light.intensity = 1.0;
-    light.radius = 10.0;
+    light.position = vec3(5E2)*normalize(vec3(1, 3.5, 0));
+    light.color = vec3(0.5, 0.75, 1.0);
+    light.intensity = 0.35;
+    light.radius = 1E3;
 
     std::shared_ptr<Triangle> t1(new Triangle);
     t1->setPoints(vec3(-1, 3, -1), vec3(-1, 0, -1), vec3(1, 0, 1));
 
-    std::shared_ptr<Mesh> d20(new Mesh);
-    d20->readOBJ("./ressources/d20.obj");
+    std::shared_ptr<Mesh> fox(new Mesh);
+    fox->readOBJ("./ressources/fox.obj");
+    fox->readTexture("./ressources/fox.png");
+    fox->reflectivity = 0.f;
 
+    std::shared_ptr<Mesh> rock(new Mesh);
+    rock->readOBJ("./ressources/rock.obj");
+    rock->readTexture("./ressources/rock.png");
+    rock->reflectivity = 0.1f;
+
+    std::shared_ptr<Mesh> mountain(new Mesh);
+    mountain->readOBJ("./ressources/mountain.obj");
+    mountain->readTexture("./ressources/mountain.png");
+    mountain->reflectivity = 0.f;
+
+    std::shared_ptr<Mesh> sakura(new Mesh);
+    sakura->readOBJ("./ressources/sakura.obj", true);
+    sakura->reflectivity = 0.f;
+
+    std::shared_ptr<Mesh> water(new Mesh);
+    water->readOBJ("./ressources/water.obj", true);
+    water->reflectivity = 0.7f;
 
     Scene scene;
     // scene.add(s);
@@ -134,11 +165,15 @@ int main()
     // scene.add(r3);
     // scene.add(r4);
     // scene.add(r5);
-    // scene.add(sun);
-    // scene.add(light);
-    scene.add(t1);
-    scene.add(d20);
-    scene.ambientLight = vec3(1.0);
+    scene.add(sun);
+    scene.add(light);
+    // scene.add(t1);
+    scene.add(fox);
+    scene.add(rock);
+    scene.add(mountain);
+    scene.add(sakura);
+    scene.add(water);
+    scene.ambientLight = vec3(0.25);
 
     BenchTimer timer("frame time");
     timer.start();
@@ -154,13 +189,16 @@ int main()
             vec3 color(0);
 
             vec2 uv((float)j/(float)res.y, (float)i/(float)res.x);
-            uv = -uv*vec2(2.0) + vec2(1.0) + vec2(std::rand()%256, std::rand()%256)*vec2(1E-5);
+            uv = -uv*vec2(2.0) + vec2(1.0);
+            uv += k ? vec2(std::rand()%256, std::rand()%256)*vec2(1E-4) : vec2(0);
+            uv = vec2(-uv.x, uv.y);
 
             vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
             vec3 far = vec3(spf)/spf.w;
             vec3 direction = normalize(far - camera.getPosition());
 
-            rayContact rc = scene.getResult(direction, camera.getPosition());
+            // rayContact rc = scene.getResult(direction, camera.getPosition());
+            rayContact rc = scene.getResultReflectivity(direction, camera.getPosition(), 4);
 
             color = rc.color;
 
