@@ -11,24 +11,35 @@ struct pixel
     uint8 r, g, b;
 };
 
+uint64 Triangle::traceCall;
+uint64 Triangle::tmpTraceCall;
+uint64 Triangle::missedTracedCall;
+uint64 Triangle::contactTraceCall;
+bool Triangle::tmpDebug = false;
+
 int main()
 {
-    ivec2 res = vec2(128);
+    Triangle::traceCall = 0;
+    Triangle::tmpTraceCall = 0;
+    Triangle::missedTracedCall = 0;
+    Triangle::contactTraceCall = 0;
+
+    ivec2 res = vec2(256);
 
     std::shared_ptr<pixel> img(new pixel[res.x*res.y]);
 
     CameraState cs;
     Camera camera;
-    // camera.init(radians(50.0f), res.x, res.y, 0.1, 10000.0);
 
     camera.init(radians(25.0f), res.x, res.y, 0.1, 10000.0);
+    // camera.init(radians(10.0f), res.x, res.y, 0.1, 10000.0);
 
 
     // camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
     // camera.lookAt(vec3(0.0, 2.0, 0.0));
 
-    // camera.setCameraPosition(vec3(25.0, 5.0, 35.0));
     camera.setCameraPosition(vec3(40.0, 5.0, 25.0));
+    // camera.setCameraPosition(vec3(40.0, 15.0, 25.0));
     camera.lookAt(vec3(0, 2, 0));
     // camera.lookAt(vec3(-2.5, 2, 0));
     camera.setForceLookAtPoint(true);
@@ -120,7 +131,7 @@ int main()
 
     PhongLight sun;
     // sun.direction = normalize(vec3(-1, -0.5, 0));
-    sun.position = vec3(5E2)*normalize(vec3(-7, 6, 2.7));
+    sun.position = vec3(5E2)*normalize(vec3(7, 6, 2.7)); // vec3(5E2)*normalize(vec3(-7, 6, 2.7));
     sun.color = vec3(1.0, 0.95, 0.8);
     sun.intensity = 1.5;
     sun.radius = 1E4;
@@ -165,15 +176,16 @@ int main()
     // scene.add(r3);
     // scene.add(r4);
     // scene.add(r5);
-    scene.add(sun);
-    scene.add(light);
+    // scene.add(sun);
+    // scene.add(light);
     // scene.add(t1);
-    scene.add(fox);
-    scene.add(rock);
+    // scene.add(fox);
+    // scene.add(rock);
     scene.add(mountain);
-    scene.add(sakura);
-    scene.add(water);
-    scene.ambientLight = vec3(0.25);
+    // scene.add(sakura);
+    // scene.add(water);
+    // scene.ambientLight = vec3(0.25);
+    scene.ambientLight = vec3(1);
 
     BenchTimer timer("frame time");
     timer.start();
@@ -193,6 +205,8 @@ int main()
             uv += k ? vec2(std::rand()%256, std::rand()%256)*vec2(1E-4) : vec2(0);
             uv = vec2(-uv.x, uv.y);
 
+            Triangle::tmpDebug = uv.x < 0.6 && uv.x > 0.59 && uv.y < 0.5 && uv.y > 0.49; 
+
             vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
             vec3 far = vec3(spf)/spf.w;
             vec3 direction = normalize(far - camera.getPosition());
@@ -201,6 +215,11 @@ int main()
             rayContact rc = scene.getResultReflectivity(direction, camera.getPosition(), 4);
 
             color = rc.color;
+
+            if(Triangle::tmpDebug)
+            {
+                color = mix(color, vec3(0, 1, 0), 0.5);
+            }
 
             color = max(min(color, vec3(1.0)), vec3(0.0)); 
             fragColor += color;
@@ -215,6 +234,10 @@ int main()
     std::cout << timer; 
 
     stbi_write_png("render/result.png", res.x, res.y, 3, img.get(), 0);
+
+    std::cout << "Triangles Trace Calls : " << Triangle::traceCall / 1E6f << "\n";
+    std::cout << "Triangles Trace Calls That resulted in miss    : " << Triangle::missedTracedCall / 1E6f << "\n";
+    std::cout << "Triangles Trace Calls That resulted in contact : " << Triangle::contactTraceCall / 1E6f << "\n";
 
     return EXIT_SUCCESS;
 }
