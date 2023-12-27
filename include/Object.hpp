@@ -113,6 +113,8 @@ struct MeshKDTreeNode
     char splitingAttempts = 0;
 
     MeshKDTreeNode *parent = NULL;
+    int id;
+    int parentid;
 
     MeshKDTreeNode *frontChild = NULL;
     MeshKDTreeNode *backChild = NULL;

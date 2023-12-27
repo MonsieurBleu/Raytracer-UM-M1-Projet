@@ -176,16 +176,16 @@ int main()
     // scene.add(r3);
     // scene.add(r4);
     // scene.add(r5);
-    // scene.add(sun);
+    scene.add(sun); 
     // scene.add(light);
     // scene.add(t1);
     // scene.add(fox);
     // scene.add(rock);
     scene.add(mountain);
-    // scene.add(sakura);
+    scene.add(sakura);
     // scene.add(water);
-    // scene.ambientLight = vec3(0.25);
-    scene.ambientLight = vec3(1);
+    scene.ambientLight = vec3(0.25);
+    // scene.ambientLight = vec3(1);
 
     BenchTimer timer("frame time");
     timer.start();

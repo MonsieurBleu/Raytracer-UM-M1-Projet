@@ -230,12 +230,18 @@ void Mesh::genKDTree()
     useKDTree = true;
 }
 
+
+int nodeId = 0;
+
 void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
 {
     node.splitingAttempts ++;
     int dCoord = depth%3;
     int dCoord2 = (depth+1)%3;
     int dCoord3 = (depth+2)%3;
+
+    node.id = nodeId;
+    nodeId ++;
 
     node.max = vec3(-NO_INTERSECTION);
     node.min = vec3(NO_INTERSECTION);
@@ -275,6 +281,8 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
 
     node.frontChild->parent = &node;
     node.backChild->parent = &node;
+    node.frontChild->parentid = node.id;
+    node.backChild->parentid = node.id;
 
     for(auto i : node.triangles)
     {
@@ -297,7 +305,14 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
 
     // std::cout << " : " << fsize << " " << bsize; 
 
-    if(fsize && bsize && fsize != size && bsize != size)
+    if(fsize && 
+       bsize && 
+       (float)fsize < size*0.75 && 
+       (float)bsize < size*0.75
+    //    fsize != size && 
+    //    bsize != size && 
+    //    (float)(bsize+fsize) < size*1.5
+       )
     {
         genKDNode(*node.frontChild, depth+1);
         genKDNode(*node.backChild, depth+1);
@@ -315,12 +330,6 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
 
 }
 
-// bool fastTraceQuad(vec3 min, vec3 max, vec3 pos)
-// {
-//     rayContact result;
-
-// }
-
 bool inInterval(float min, float max, float val)
 {
     return val >= min && val <= max;
@@ -335,11 +344,6 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
     vec3 tmax;
     vec3 tmin;
 
-    const mat3 n(
-        1.f, 0.f, 0.f, 
-        0.f, 1.f, 0.f,
-        0.f, 0.f, 1.f); 
-
     const vec3 inDotR = vec3(1.0)/ray;
 
     std::list<MeshKDTreeNode*> stack;
@@ -353,30 +357,8 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
 
         if(Triangle::tmpDebug)
         {
-            std::cout << "Node : " << &node << "\n";
-            std::cout << "Parent : " << node.parent << "\n";;
-        }
-
-        if(!node.backChild || !node.frontChild)
-        {
-            // std::cout << node.triangles.size() << "\n";
-            for(auto i : node.triangles)
-            {
-                rayContact t = i->trace(ray, origin);
-                if(t.t < result.t)
-                    result = t;   
-            }
-            // if(result.t < NO_INTERSECTION)
-            //     return result;
-        
-            if(Triangle::tmpDebug)
-            {
-                // std::cout << "================================================\n";
-                std::cout << "Node found, result  = " << result.t << "\n";
-                std::cout << "================================================\n";
-            }
-
-            continue;
+            std::cout << "Node : " << node.id << "\n";
+            std::cout << "Parent : " << node.parentid << "\n";
         }
 
         tmax = (node.max-origin)*inDotR;
@@ -426,6 +408,13 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
         float tSplit = (node.median-origin[c])*inDotR[c];
         // tSplit = tSplit < 0.f ? NO_INTERSECTION : tSplit;
 
+
+        // bool b1 = ray[c] >= 0.f;
+        // bool b2 = tSplit <= 0.f;
+        // bool invertChilds = (b1 != b2) && (b1 || b2);
+
+        bool invertChilds = origin[c] < node.median;
+
         if(Triangle::tmpDebug)
         {
             std::cout << tmax.x << " " << tmax.y << " " << tmax.z  << "\n";
@@ -434,114 +423,130 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
             std::cout << "tOut   = " << tOut << "\n";
             std::cout << "tSplit = " << tSplit << "\n";
             std::cout << "size = " << node.triangles.size() << "\n";
+            std::cout << "Splitting Attemps = " << (int)node.splitingAttempts << "\n";
+            std::cout << "split coord = " << (int)node.channel << "\n";
+            std::cout << "invert childs = " << invertChilds << "\n";
             std::cout << "================================================\n";
         }
 
         if(tIn == NO_INTERSECTION) continue;
 
+        if(!node.backChild || !node.frontChild)
+        {
+            // std::cout << node.triangles.size() << "\n";
+            for(auto i : node.triangles)
+            {
+                rayContact t = i->trace(ray, origin);
+                if(t.t < result.t)
+                    result = t;   
+            }
+        
+            if(Triangle::tmpDebug)
+            {
+                // std::cout << "================================================\n";
+                std::cout << "Node found, result  = " << result.t << "\n";
+                std::cout << "================================================\n";
+            }
+
+            if(result.t < NO_INTERSECTION)
+                return result;
+
+            continue;
+        }
+
+        // stack.push_front(node.frontChild);
+        // stack.push_front(node.backChild);
+
+
+
         // (dot(position, normal)-dot(origin, normal))/dot(ray, normal);
+
+        // float tFront = (node.frontChild->min[c]-origin[c])*inDotR[c];
+        // float tBack = (node.backChild->max[c]-origin[c])*inDotR[c];
+
+        // if(tFront <= tOut)
+        // {
+        //     stack.push_front(node.frontChild);
+        // }
+        // stack.push_front(node.backChild);
+
+        
 
         /*
             Method here :
             https://people.cs.vt.edu/yongcao/teaching/csx984/fall2011/documents/Lecture10_Acceleration_structure.pdf
         */
+        // MeshKDTreeNode *nearChild = node.frontChild;
+        // MeshKDTreeNode *farChild = node.backChild;
+
+        // if(invertChilds)
+        // {
+        //     farChild = node.frontChild;
+        //     nearChild = node.backChild;
+        // }
 
         // if(tSplit <= tIn)
         // {
         //     if(Triangle::tmpDebug)
         //     std::cout << "==> Branching 1\n================================================\n";
-        //     stack.push_front(node.backChild);
+            
+        //     stack.push_front(farChild);
         // }
         // else if(tSplit >= tOut)
         // {
         //     if(Triangle::tmpDebug)
         //     std::cout << "==> Branching 2\n================================================\n";
-        //     stack.push_front(node.frontChild);
+            
+        //     stack.push_front(nearChild);
         // }
         // else
         // {
         //     if(Triangle::tmpDebug)
         //     std::cout << "==> Branching 3\n================================================\n";
-        //     stack.push_front(node.frontChild);
-        //     stack.push_front(node.backChild);
+        //     stack.push_front(nearChild);
+        //     stack.push_front(farChild);
         // }
 
 
-/*
+        // stack.push_front(node.frontChild);
+        // stack.push_front(node.backChild);
 
-================================================
-Node : 0x1bfb4924cc0
-Parent : 0x1bfb49233a0
-81.6458 1e+10 1e+10
-97.4999 1e+10 1e+10
-tIn    = 81.6458
-tOut   = 97.4999
-tSplit = 94.3597
-size = 16
-================================================
 
-================================================
-Node : 0x1bfb4924600
-Parent : 0x1bfb4924cc0
-1e+10 1e+10 84.8026
-97.4999 1e+10 1e+10
-tIn    = 84.8026
-tOut   = 97.4999
-tSplit = 90.6012
-size = 11
-================================================
 
-================================================
-Node : 0x1bfb49251a0
-Parent : 0x1bfb4924600
-85.2561 1e+10 1e+10
-97.4999 1e+10 1e+10
-tIn    = 85.2561
-tOut   = 97.4999
-tSplit = 97.167
-size = 8
-================================================
+        // float cIn = ray[c]*tIn;
+        // float cOut = ray[c]*tOut;
 
-================================================
-Node : 0x1bfb4924e40
-Parent : 0x1bfb49251a0
-85.2561 1e+10 1e+10
-97.4999 1e+10 1e+10
-tIn    = 85.2561
-tOut   = 97.4999
-tSplit = 91.8898
-size = 5
-================================================
+        // if(ray[c]*tSplit < 0.f)
+        // {
+        //     stack.push_front(node.frontChild);
+        //     stack.push_back(node.backChild);
+        // }
+        // else
+        // {
+        //     stack.push_front(node.backChild);
+        //     stack.push_back(node.frontChild);
+        // }
 
-================================================
-Node : 0x1bfb4925500
-Parent : 0x1bfb4924e40
-Node found, result  = 87.868
-================================================
-
-*/
 
         /*SLOW BUT EASY METHOD*/
-        stack.push_front(node.frontChild);
-        stack.push_front(node.backChild);
+        // stack.push_front(node.frontChild);
+        // stack.push_front(node.backChild);
 
         /*FAST METHOD*/
-        // float tSplit = (node.median - origin[c])/ray[c];
+        MeshKDTreeNode *n1 = node.frontChild;
+        MeshKDTreeNode *n2 = node.backChild;
 
-        // MeshKDTreeNode *n1 = node.frontChild;
-        // MeshKDTreeNode *n2 = node.backChild;
+        if(invertChilds)
+        {
+            n1 = node.backChild;
+            n2 = node.frontChild;
+        }
 
-        // bool b1 = ray[c] > 0.f;
-        // bool b2 = tSplit < 0.f;
+        stack.push_front(n1);
+        stack.push_back(n2);
 
-        // if((b1 != b2) && (b1 || b2))
-        // {
-        //     n1 = node.backChild;
-        //     n2 = node.frontChild;
-        // }
 
-        // stack.push_front(n1);
-        // stack.push_back(n2);
+
 
         /*MY FAST METHOD*/
         // float coordT = origin[c] + t*ray[c];

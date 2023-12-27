@@ -40,41 +40,41 @@ std::string getFileExtension(const std::string &fileName)
     return result;
 };
 
-void checkHeap()
-{
-    int  heapstatus;
+// void checkHeap()
+// {
+//     int  heapstatus;
 
-    // Check heap status
-    heapstatus = _heapchk();
-    switch( heapstatus )
-    {
-    case _HEAPOK:
-        std::cout 
-        << TERMINAL_OK
-        << " OK - heap is fine\n";
-        break;
-    case _HEAPEMPTY:
+//     // Check heap status
+//     heapstatus = _heapchk();
+//     switch( heapstatus )
+//     {
+//     case _HEAPOK:
+//         std::cout 
+//         << TERMINAL_OK
+//         << " OK - heap is fine\n";
+//         break;
+//     case _HEAPEMPTY:
 
-        std::cout 
-        << TERMINAL_OK
-        << " OK - heap is empty\n";
-        break;
+//         std::cout 
+//         << TERMINAL_OK
+//         << " OK - heap is empty\n";
+//         break;
 
-    case _HEAPBADBEGIN:
-        std::cout 
-        << TERMINAL_ERROR
-        <<"ERROR - bad start of heap\n";
-        break;
+//     case _HEAPBADBEGIN:
+//         std::cout 
+//         << TERMINAL_ERROR
+//         <<"ERROR - bad start of heap\n";
+//         break;
 
-    case _HEAPBADNODE:
-        std::cout 
-        << TERMINAL_ERROR
-        << "ERROR - bad node in heap\n";
-        break;
-    }
+//     case _HEAPBADNODE:
+//         std::cout 
+//         << TERMINAL_ERROR
+//         << "ERROR - bad node in heap\n";
+//         break;
+//     }
 
-    std::cout << TERMINAL_RESET;
-}
+//     std::cout << TERMINAL_RESET;
+// }
 
 
 clockmicro::time_point benchrono;
