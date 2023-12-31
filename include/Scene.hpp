@@ -11,6 +11,7 @@ class Scene
         std::list<PhongLight> lights;
 
     public : 
+        Texture skybox;
 
         vec3 ambientLight = vec3(0.2);
 
@@ -19,4 +20,5 @@ class Scene
         rayContact trace(vec3 ray, vec3 origin);
         rayContact getResult(vec3 ray, vec3 origin);
         rayContact getResultReflectivity(vec3 ray, vec3 origin, int maxIt);
+        rayContact getResultTranceparency(vec3 ray, vec3 origin, int maxIt);
 };

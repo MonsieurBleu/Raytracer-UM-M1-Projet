@@ -3,9 +3,8 @@
 
 #define NO_INTERSECTION 10E9
 
-#include <glm/glm.hpp>
-#include <iostream>
 #include <vector>
+#include <Texture.hpp>
 
 using namespace glm;
 
@@ -13,20 +12,20 @@ struct rayContact
 {
     float t = NO_INTERSECTION;
     float reflectivity = 0.f;
+    float transparency = 0.f;
     vec3 position;
     vec3 color;
     vec3 normal = vec3(0);
     vec2 uv;
-    
     bool inBackFace = false;
-    bool outOfBound = false;
 };
 
 class Object
 {
     public : 
         vec3 color = vec3(1);
-        float reflectivity;
+        float reflectivity = 0.f;
+        float transparency = 0.f;
         virtual rayContact trace(vec3 ray, vec3 origin);
 };
 
@@ -104,20 +103,14 @@ class Triangle : public Object
 
 struct MeshKDTreeNode
 {
-    vec3 max;
-    vec3 min;
-    float median;
     char channel;
-    std::vector<Triangle*> triangles;
-
     char splitingAttempts = 0;
-
-    MeshKDTreeNode *parent = NULL;
-    int id;
-    int parentid;
-
+    float median;
     MeshKDTreeNode *frontChild = NULL;
     MeshKDTreeNode *backChild = NULL;
+    vec3 max;
+    vec3 min;
+    std::vector<Triangle*> triangles;
 };
 
 class Mesh : public Object
@@ -136,14 +129,14 @@ class Mesh : public Object
 
         int texW, texH;
         unsigned char *tex = NULL;
-        vec3 texture(vec2 uv);
 
         bool useVertexColors = false;
 
     public : 
         void readOBJ(std::string filePath, bool useVertexColors = false);
-        void readTexture(std::string filePath);
         rayContact trace(vec3 ray, vec3 origin);
+
+        Texture tColor;
 };
 
 

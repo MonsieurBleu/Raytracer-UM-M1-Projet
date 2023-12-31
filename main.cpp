@@ -5,6 +5,7 @@
 #include <Timer.hpp>
 #include <PhongLights.hpp>
 #include <Scene.hpp>
+#include <Utils.hpp>
 
 struct pixel
 {
@@ -31,17 +32,20 @@ int main()
     CameraState cs;
     Camera camera;
 
-    camera.init(radians(25.0f), res.x, res.y, 0.1, 10000.0);
-    // camera.init(radians(10.0f), res.x, res.y, 0.1, 10000.0);
+    // camera.init(radians(25.0f), res.x, res.y, 0.1, 10000.0);
+    camera.init(radians(30.0f), res.x, res.y, 0.1, 10000.0);
 
 
     // camera.setCameraPosition(vec3(4.85, 2.0, 0.0));
     // camera.lookAt(vec3(0.0, 2.0, 0.0));
 
-    camera.setCameraPosition(vec3(40.0, 5.0, 25.0));
-    // camera.setCameraPosition(vec3(40.0, 15.0, 25.0));
-    camera.lookAt(vec3(0, 2, 0));
-    // camera.lookAt(vec3(-2.5, 2, 0));
+    // camera.setCameraPosition(vec3(40.0, 5.0, 25.0));
+
+    camera.setCameraPosition(
+        vec3(50.f)*normalize(vec3(-10.0, 0.0, 30.0)));
+
+    // camera.lookAt(vec3(0, 2, 0));
+    camera.lookAt(vec3(-3.5, -2.3, 0));
     camera.setForceLookAtPoint(true);
 
     // camera.setCameraPosition(vec3(5.0, 0.0, 0.0));
@@ -131,15 +135,15 @@ int main()
 
     PhongLight sun;
     // sun.direction = normalize(vec3(-1, -0.5, 0));
-    sun.position = vec3(5E2)*normalize(vec3(7, 6, 2.7)); // vec3(5E2)*normalize(vec3(-7, 6, 2.7));
+    sun.position = vec3(5E2)*normalize(vec3(5, 6, 10)); // vec3(5E2)*normalize(vec3(-7, 6, 2.7));
     sun.color = vec3(1.0, 0.95, 0.8);
-    sun.intensity = 1.5;
+    sun.intensity = 0.75;
     sun.radius = 1E4;
 
     PhongLight light;
     light.position = vec3(5E2)*normalize(vec3(1, 3.5, 0));
-    light.color = vec3(0.5, 0.75, 1.0);
-    light.intensity = 0.35;
+    light.color = vec3(0.75, 0.5, 1.0);
+    light.intensity = 0.5;
     light.radius = 1E3;
 
     std::shared_ptr<Triangle> t1(new Triangle);
@@ -147,28 +151,38 @@ int main()
 
     std::shared_ptr<Mesh> fox(new Mesh);
     fox->readOBJ("./ressources/fox.obj");
-    fox->readTexture("./ressources/fox.png");
-    fox->reflectivity = 0.f;
+    fox->tColor.readTexture("./ressources/fox.png");
+    // fox->transparency = 0.65;
+    // fox->reflectivity = 1.f;
 
     std::shared_ptr<Mesh> rock(new Mesh);
-    rock->readOBJ("./ressources/rock.obj");
-    rock->readTexture("./ressources/rock.png");
-    rock->reflectivity = 0.1f;
+    rock->readOBJ("./ressources/rock2.obj");
+    rock->tColor.readTexture("./ressources/rock.png");
+    rock->reflectivity = 0.1;
 
     std::shared_ptr<Mesh> mountain(new Mesh);
     mountain->readOBJ("./ressources/mountain.obj");
-    mountain->readTexture("./ressources/mountain.png");
-    mountain->reflectivity = 0.f;
+    mountain->tColor.readTexture("./ressources/mountain.png");
+    // mountain->reflectivity = 0.75;
 
     std::shared_ptr<Mesh> sakura(new Mesh);
     sakura->readOBJ("./ressources/sakura.obj", true);
-    sakura->reflectivity = 0.f;
+    // sakura->reflectivity = 0.75;
 
     std::shared_ptr<Mesh> water(new Mesh);
     water->readOBJ("./ressources/water.obj", true);
-    water->reflectivity = 0.7f;
+    water->reflectivity = 0.75;
+    // water->transparency = 0.5;
 
     Scene scene;
+    scene.skybox.readTexture("./ressources/skybox/s.jpg");
+    // s->reflectivity = 0.9;
+    // s2->reflectivity = 0.9;
+    // r->reflectivity = 0.9;
+    // r2->reflectivity = 0.9;
+    // r3->reflectivity = 0.9;
+    // r4->reflectivity = 0.9;
+    // r5->reflectivity = 0.9;
     // scene.add(s);
     // scene.add(s2);
     // scene.add(r);
@@ -177,15 +191,22 @@ int main()
     // scene.add(r4);
     // scene.add(r5);
     scene.add(sun); 
-    // scene.add(light);
+    scene.add(light);
     // scene.add(t1);
     // scene.add(fox);
-    // scene.add(rock);
-    scene.add(mountain);
+    scene.add(rock);
+    // scene.add(mountain);
     scene.add(sakura);
-    // scene.add(water);
-    scene.ambientLight = vec3(0.25);
+    scene.add(water);
+    scene.ambientLight = vec3(0.5);
     // scene.ambientLight = vec3(1);
+
+
+
+    std::shared_ptr<Mesh> flamingo(new Mesh);
+    flamingo->readOBJ("./ressources/flamingo2/model.obj", true);
+    scene.add(flamingo);
+
 
     BenchTimer timer("frame time");
     timer.start();
@@ -199,29 +220,20 @@ int main()
         for(int k = 0; k < nbSample; k++)
         {
             vec3 color(0);
-
             vec2 uv((float)j/(float)res.y, (float)i/(float)res.x);
+                
             uv = -uv*vec2(2.0) + vec2(1.0);
-            uv += k ? vec2(std::rand()%256, std::rand()%256)*vec2(1E-4) : vec2(0);
             uv = vec2(-uv.x, uv.y);
-
-            Triangle::tmpDebug = uv.x < 0.6 && uv.x > 0.59 && uv.y < 0.5 && uv.y > 0.49; 
 
             vec4 spf = iViewProj * vec4(uv.x, uv.y, 1.0, 1.0);
             vec3 far = vec3(spf)/spf.w;
             vec3 direction = normalize(far - camera.getPosition());
 
-            // rayContact rc = scene.getResult(direction, camera.getPosition());
-            rayContact rc = scene.getResultReflectivity(direction, camera.getPosition(), 4);
+            rayContact rc = scene.getResultTranceparency(direction, camera.getPosition(), 16);
 
             color = rc.color;
 
-            if(Triangle::tmpDebug)
-            {
-                color = mix(color, vec3(0, 1, 0), 0.5);
-            }
-
-            color = max(min(color, vec3(1.0)), vec3(0.0)); 
+            color = clamp(color, vec3(0), vec3(1)); 
             fragColor += color;
         }
         fragColor = fragColor/vec3(nbSample);

@@ -9,8 +9,6 @@
 
 #include <CompilingOptions.hpp>
 
-#define PI 3.14159265358979323846
-
 using namespace glm;
 
 glm::mat4 MakeInfReversedZProjRH(float fovY_radians, float aspectWbyH, float zNear)

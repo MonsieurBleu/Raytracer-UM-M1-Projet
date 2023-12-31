@@ -6,6 +6,14 @@
 #include <string>
 #include <chrono>
 
+/// CONSTANTS
+#define PI   3.141592653589793
+#define PI2  6.283185307179586
+#define iPI  0.318309886183790
+#define iPI2 0.159154943091895
+#define E    2.718281828459045
+#define PHI  1.618033988749894
+#define SQR2 1.414213562373095
 
 /// TERMINAL
 const std::string TERMINAL_ERROR    = "\e[1;31m"; //"\033[91m";
@@ -39,36 +47,9 @@ double Get_delta_time();
 /// HEAP CORRUPTION
 void checkHeap();
 
-/// VECTORS
-
-// #include <glm/glm.hpp>
-// #include <glm/gtx/string_cast.hpp>
-
-// std::ostream& operator<<(std::ostream& os, const glm::vec2& u)
-// {
-//     os << "vec2(" << u.x << ", " << u.y << ")";
-//     return os;
-// };
-
-// #include <glm/glm.hpp>
-
-// std::ostream& operator<<(std::ostream& os, const glm::vec3& u)
-// {
-//     os << "vec3(" << u.x << ", " << u.y << ", " << u.z << ")";
-//     return os;
-// };
-
-// std::ostream& operator<<(std::ostream& os, const glm::vec4& u)
-// {
-//     os << "vec2(" << u.x << ", " << u.y << ", " << u.z << ", " << u.w << ")";
-//     return os;
-// };
-
-
-// template<typename genType>
-// std::ostream& operator<<(std::ostream& out, const genType& g)
-// {
-//     return out << glm::to_string(g);
-// }
+/// NOISE
+#include <glm/glm.hpp>
+using namespace glm;
+float gold_noise3(vec3 coordinate, float seed);
 
 #endif

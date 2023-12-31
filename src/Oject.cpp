@@ -65,7 +65,7 @@ void Quad::genNormalMinMax()
     min = glm::min(glm::min(points[0], points[1]), glm::min(points[2], points[3]));
     max = glm::max(glm::max(points[0], points[1]), glm::max(points[2], points[3]));
     // We add a small imprecision, to prevent floating point precision bugs in certain situation
-    float p = 0.0001;
+    float p = 0.00001;
     min -= p;
     max += p;
     min += position;
@@ -90,21 +90,19 @@ rayContact Quad::trace(vec3 ray, vec3 origin)
     result.reflectivity = reflectivity;
     result.t = (dot(position, normal)-dot(origin, normal))/dot(ray, normal);
 
-    // result.inBackFace = result.t < 0.0;
-    result.inBackFace = dot(normal, normalize(position - origin)) < 0.f;
-
     result.t = result.t < 0.0 || result.t == NAN || result.t == INFINITY ? NO_INTERSECTION : result.t;
 
     result.position = origin + ray*result.t;
-    // result.normal = result.t < 0.0 ? -normal : normal;
-    result.normal = result.inBackFace ? normal : -normal;
 
-    result.outOfBound = false;
-    result.outOfBound |= min.x > result.position.x || max.x < result.position.x;
-    result.outOfBound |= min.y > result.position.y || max.y < result.position.y;
-    result.outOfBound |= min.z > result.position.z || max.z < result.position.z;
+    bool inBackFace = dot(normal, normalize(position - origin)) < 0.f;
+    result.normal = inBackFace ? normal : -normal;
 
-    result.t = result.outOfBound ? NO_INTERSECTION : result.t;
+    bool outOfBound = false;
+    outOfBound |= min.x > result.position.x || max.x < result.position.x;
+    outOfBound |= min.y > result.position.y || max.y < result.position.y;
+    outOfBound |= min.z > result.position.z || max.z < result.position.z;
+
+    result.t = outOfBound ? NO_INTERSECTION : result.t;
 
     return result;
 }
@@ -153,12 +151,18 @@ rayContact Triangle::trace(vec3 ray, vec3 origin)
     rayContact result;
     result.color = color;
     result.reflectivity = reflectivity;
+    result.transparency = transparency;
     result.t = (dot(position[0], normal)-dot(origin, normal))/dot(ray, normal);
 
     result.t = result.t < 0.0 || result.t == NAN || result.t == INFINITY ? NO_INTERSECTION : result.t;
 
+    if(result.t >= NO_INTERSECTION) return result;
+
     result.position = origin + ray*result.t;
-    result.normal = normal;
+
+    bool inBackFace = dot(normal, normalize(position[0] - origin)) < 0.f;
+    // result.normal = inBackFace ? normal : -normal;
+    result.inBackFace = inBackFace;
 
     vec3 ba = position[0]-position[1];
     vec3 ac = position[2]-position[0];
@@ -179,6 +183,8 @@ rayContact Triangle::trace(vec3 ray, vec3 origin)
     result.t = s1 < 0 ? NO_INTERSECTION : result.t;
     result.t = s2 < 0 ? NO_INTERSECTION : result.t;
     result.t = s3 < 0 ? NO_INTERSECTION : result.t;
+
+    if(result.t >= NO_INTERSECTION) return result;
 
     float alpha = s1*iArea; 
     float beta = s2*iArea;
@@ -230,21 +236,12 @@ void Mesh::genKDTree()
     useKDTree = true;
 }
 
-
-int nodeId = 0;
-
 void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
 {
     node.splitingAttempts ++;
     int dCoord = depth%3;
     int dCoord2 = (depth+1)%3;
     int dCoord3 = (depth+2)%3;
-
-    node.id = nodeId;
-    nodeId ++;
-
-    node.max = vec3(-NO_INTERSECTION);
-    node.min = vec3(NO_INTERSECTION);
 
     int size = node.triangles.size();
 
@@ -258,15 +255,6 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
         }
     );
 
-    if(node.splitingAttempts == 1)
-    {        
-        // for(int i = 0; i < depth; i++)
-        //     std::cout << "   ";
-        // std::cout << "(" << depth << ") ";
-        // std::cout << size;
-        // std::cout << "\n";
-    }
-
 
     float medianCoord = node.triangles[size/2]->getCenter()[dCoord];
 
@@ -279,39 +267,42 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
     node.frontChild = new MeshKDTreeNode;
     node.backChild = new MeshKDTreeNode;
 
-    node.frontChild->parent = &node;
-    node.backChild->parent = &node;
-    node.frontChild->parentid = node.id;
-    node.backChild->parentid = node.id;
+    /* New way of building better AABB*/
+    if(&node == &tree)
+    {
+        node.max = vec3(-NO_INTERSECTION);
+        node.min = vec3(NO_INTERSECTION);
+        for(auto i : node.triangles)
+        {
+            node.max = max(node.max, i->getMax());
+            node.min = min(node.min, i->getMin());
+        }
+    }
+    
+    node.frontChild->max = node.max;
+    node.frontChild->min = node.min;
+    node.frontChild->min[dCoord] = node.median;
+
+    node.backChild->max = node.max;
+    node.backChild->min = node.min;
+    node.backChild->max[dCoord] = node.median;
 
     for(auto i : node.triangles)
     {
-        vec3 imax = i->getMax();
-        vec3 imin = i->getMin();
-
-        node.max = max(node.max, imax);
-        node.min = min(node.min, imin);
-
-        if(imax[dCoord] >= medianCoord)
+        if(i->getMax()[dCoord] >= medianCoord)
             node.frontChild->triangles.push_back(i);
-
-        if(imin[dCoord] <= medianCoord)
+        
+        if(i->getMin()[dCoord] <= medianCoord)
             node.backChild->triangles.push_back(i);
     }
 
     int fsize = node.frontChild->triangles.size();
     int bsize = node.backChild->triangles.size();
 
-
-    // std::cout << " : " << fsize << " " << bsize; 
-
     if(fsize && 
        bsize && 
        (float)fsize < size*0.75 && 
        (float)bsize < size*0.75
-    //    fsize != size && 
-    //    bsize != size && 
-    //    (float)(bsize+fsize) < size*1.5
        )
     {
         genKDNode(*node.frontChild, depth+1);
@@ -319,7 +310,6 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
     }
     else
     {
-        // std::cout << " [deleted]";
         delete node.frontChild;
         delete node.backChild;
         node.frontChild = nullptr;
@@ -335,10 +325,13 @@ bool inInterval(float min, float max, float val)
     return val >= min && val <= max;
 }
 
+#include <deque>
+
+const int gstackSize = 0x2000;
+MeshKDTreeNode* gstack[gstackSize];
+
 rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
 {
-    // Recursive 0.16 secondes
-
     rayContact result;
 
     vec3 tmax;
@@ -346,30 +339,24 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
 
     const vec3 inDotR = vec3(1.0)/ray;
 
-    std::list<MeshKDTreeNode*> stack;
-    stack.push_back(&firstNode);
+    int front = 0;
+    gstack[0] = &firstNode;
+    int back = 1;
 
-    while(!stack.empty())
+    do
     {
-
-        MeshKDTreeNode& node = *stack.front();
-        stack.pop_front();
-
-        if(Triangle::tmpDebug)
-        {
-            std::cout << "Node : " << node.id << "\n";
-            std::cout << "Parent : " << node.parentid << "\n";
-        }
+        MeshKDTreeNode& node = *gstack[front];
+        front ++;
 
         tmax = (node.max-origin)*inDotR;
         tmin = (node.min-origin)*inDotR;
 
-        tmax.x = tmax.x < 0.f || tmax.x == NAN || tmax.x == INFINITY ? NO_INTERSECTION : tmax.x;
-        tmax.y = tmax.y < 0.f || tmax.y == NAN || tmax.y == INFINITY ? NO_INTERSECTION : tmax.y;
-        tmax.z = tmax.z < 0.f || tmax.z == NAN || tmax.z == INFINITY ? NO_INTERSECTION : tmax.z;
-        tmin.x = tmin.x < 0.f || tmin.x == NAN || tmin.x == INFINITY ? NO_INTERSECTION : tmin.x;
-        tmin.y = tmin.y < 0.f || tmin.y == NAN || tmin.y == INFINITY ? NO_INTERSECTION : tmin.y;
-        tmin.z = tmin.z < 0.f || tmin.z == NAN || tmin.z == INFINITY ? NO_INTERSECTION : tmin.z;
+        tmax.x = tmax.x == NAN || tmax.x == INFINITY ? NO_INTERSECTION : tmax.x;
+        tmax.y = tmax.y == NAN || tmax.y == INFINITY ? NO_INTERSECTION : tmax.y;
+        tmax.z = tmax.z == NAN || tmax.z == INFINITY ? NO_INTERSECTION : tmax.z;
+        tmin.x = tmin.x == NAN || tmin.x == INFINITY ? NO_INTERSECTION : tmin.x;
+        tmin.y = tmin.y == NAN || tmin.y == INFINITY ? NO_INTERSECTION : tmin.y;
+        tmin.z = tmin.z == NAN || tmin.z == INFINITY ? NO_INTERSECTION : tmin.z;
 
         mat3 pmax(
             origin + ray*tmax.x, 
@@ -403,168 +390,54 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
         tOut = tmin.y != NO_INTERSECTION && tmin.y > tOut ? tmin.y : tOut;
         tOut = tmin.z != NO_INTERSECTION && tmin.z > tOut ? tmin.z : tOut;
 
+        if(tIn == NO_INTERSECTION || tOut < 0.f) continue;
+
         char c = node.channel;
 
         float tSplit = (node.median-origin[c])*inDotR[c];
-        // tSplit = tSplit < 0.f ? NO_INTERSECTION : tSplit;
 
+        bool invertChilds = ray[c] > 0.f;
 
-        // bool b1 = ray[c] >= 0.f;
-        // bool b2 = tSplit <= 0.f;
-        // bool invertChilds = (b1 != b2) && (b1 || b2);
-
-        bool invertChilds = origin[c] < node.median;
-
-        if(Triangle::tmpDebug)
-        {
-            std::cout << tmax.x << " " << tmax.y << " " << tmax.z  << "\n";
-            std::cout << tmin.x << " " << tmin.y << " " << tmin.z  << "\n";
-            std::cout << "tIn    = " << tIn << "\n";
-            std::cout << "tOut   = " << tOut << "\n";
-            std::cout << "tSplit = " << tSplit << "\n";
-            std::cout << "size = " << node.triangles.size() << "\n";
-            std::cout << "Splitting Attemps = " << (int)node.splitingAttempts << "\n";
-            std::cout << "split coord = " << (int)node.channel << "\n";
-            std::cout << "invert childs = " << invertChilds << "\n";
-            std::cout << "================================================\n";
-        }
-
-        if(tIn == NO_INTERSECTION) continue;
 
         if(!node.backChild || !node.frontChild)
         {
-            // std::cout << node.triangles.size() << "\n";
-            for(auto i : node.triangles)
+            for(Triangle* i : node.triangles)
             {
                 rayContact t = i->trace(ray, origin);
                 if(t.t < result.t)
                     result = t;   
             }
-        
-            if(Triangle::tmpDebug)
-            {
-                // std::cout << "================================================\n";
-                std::cout << "Node found, result  = " << result.t << "\n";
-                std::cout << "================================================\n";
-            }
-
-            if(result.t < NO_INTERSECTION)
-                return result;
 
             continue;
         }
-
-        // stack.push_front(node.frontChild);
-        // stack.push_front(node.backChild);
-
-
-
-        // (dot(position, normal)-dot(origin, normal))/dot(ray, normal);
-
-        // float tFront = (node.frontChild->min[c]-origin[c])*inDotR[c];
-        // float tBack = (node.backChild->max[c]-origin[c])*inDotR[c];
-
-        // if(tFront <= tOut)
-        // {
-        //     stack.push_front(node.frontChild);
-        // }
-        // stack.push_front(node.backChild);
-
-        
 
         /*
             Method here :
             https://people.cs.vt.edu/yongcao/teaching/csx984/fall2011/documents/Lecture10_Acceleration_structure.pdf
         */
-        // MeshKDTreeNode *nearChild = node.frontChild;
-        // MeshKDTreeNode *farChild = node.backChild;
+        MeshKDTreeNode *nearChild = invertChilds ? node.backChild : node.frontChild;
+        MeshKDTreeNode *farChild  = invertChilds ? node.frontChild: node.backChild;
 
-        // if(invertChilds)
-        // {
-        //     farChild = node.frontChild;
-        //     nearChild = node.backChild;
-        // }
-
-        // if(tSplit <= tIn)
-        // {
-        //     if(Triangle::tmpDebug)
-        //     std::cout << "==> Branching 1\n================================================\n";
-            
-        //     stack.push_front(farChild);
-        // }
-        // else if(tSplit >= tOut)
-        // {
-        //     if(Triangle::tmpDebug)
-        //     std::cout << "==> Branching 2\n================================================\n";
-            
-        //     stack.push_front(nearChild);
-        // }
-        // else
-        // {
-        //     if(Triangle::tmpDebug)
-        //     std::cout << "==> Branching 3\n================================================\n";
-        //     stack.push_front(nearChild);
-        //     stack.push_front(farChild);
-        // }
-
-
-        // stack.push_front(node.frontChild);
-        // stack.push_front(node.backChild);
-
-
-
-        // float cIn = ray[c]*tIn;
-        // float cOut = ray[c]*tOut;
-
-        // if(ray[c]*tSplit < 0.f)
-        // {
-        //     stack.push_front(node.frontChild);
-        //     stack.push_back(node.backChild);
-        // }
-        // else
-        // {
-        //     stack.push_front(node.backChild);
-        //     stack.push_back(node.frontChild);
-        // }
-
-
-        /*SLOW BUT EASY METHOD*/
-        // stack.push_front(node.frontChild);
-        // stack.push_front(node.backChild);
-
-        /*FAST METHOD*/
-        MeshKDTreeNode *n1 = node.frontChild;
-        MeshKDTreeNode *n2 = node.backChild;
-
-        if(invertChilds)
+        if(tSplit <= tIn)
         {
-            n1 = node.backChild;
-            n2 = node.frontChild;
+            gstack[back] = farChild;
+            back ++;
+        }
+        else if(tSplit >= tOut)
+        {
+            gstack[back] = nearChild;
+            back ++;
+        }
+        else
+        {
+            gstack[back] = nearChild;
+            back ++;
+            gstack[back] = farChild;
+            back ++;
         }
 
-        stack.push_front(n1);
-        stack.push_back(n2);
-
-
-
-
-        /*MY FAST METHOD*/
-        // float coordT = origin[c] + t*ray[c];
-        // if(coordT > node.median)
-        // {
-        //     stack.push_front(node.frontChild);
-        //     stack.push_back(node.backChild);
-        // }
-        // else
-        // {
-        //     stack.push_front(node.backChild);
-        //     stack.push_back(node.frontChild);
-        // }
-
     }
-
-    if(Triangle::tmpDebug)
-        std::cout << "\n\n\n";
+    while(front < back && back < gstackSize);
 
     return result;
 }
@@ -616,14 +489,15 @@ rayContact Mesh::trace(vec3 ray, vec3 origin)
         }
     }
 
-    result.color = !useVertexColors && result.t != NO_INTERSECTION ? texture(result.uv) : result.color;
+    result.color = !useVertexColors && result.t != NO_INTERSECTION ? tColor.texture(result.uv) : result.color;
 
-    if(result.t == NO_INTERSECTION)
+    if(result.t >= NO_INTERSECTION)
         Triangle::missedTracedCall += Triangle::tmpTraceCall;
     else
         Triangle::contactTraceCall += Triangle::tmpTraceCall;
 
     result.reflectivity = reflectivity;
+    result.transparency = transparency;
 
     return result;
 }
@@ -757,45 +631,3 @@ void Mesh::readOBJ(std::string filePath, bool useVertexColors)
 
     genKDTree();
 }
-
-void Mesh::readTexture(std::string filePath)
-{
-    int n, fileStatus;
-    fileStatus = stbi_info(filePath.c_str(), &texW, &texH, &n);
-
-    if(!fileStatus)
-    {
-        std::cerr 
-        << TERMINAL_ERROR << "Texture2D::loadFromFile : stb error, can't load image " 
-        << TERMINAL_FILENAME << filePath 
-        << TERMINAL_ERROR << ". This file either don't exist or the format is not supported.\n"
-        << TERMINAL_RESET; 
-    }
-
-    tex = stbi_load(filePath.c_str(), &texW, &texH, &n, 3);
-
-    if(!tex)
-    {
-        std::cerr 
-        << TERMINAL_ERROR << "Texture2D::loadFromFile : stb error, can load info but can't load pixels of image " 
-        << TERMINAL_FILENAME << filePath << "\n"
-        << TERMINAL_RESET; 
-    }
-}
-
-vec3 Mesh::texture(vec2 uv)
-{
-    if(!tex) return vec3(0);
-
-    uv = vec2(uv.y, uv.x);
-
-    int x = texW*uv.x;
-    int y = texH*uv.y;
-
-    return vec3(
-        tex[3*(x*texW + y)],
-        tex[3*(x*texW + y) + 1],
-        tex[3*(x*texW + y) + 2]
-    )/vec3(255);
-}
-

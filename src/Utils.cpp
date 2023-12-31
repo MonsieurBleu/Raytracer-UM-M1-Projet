@@ -105,3 +105,9 @@ double Get_delta_time()
     last_deltatime = now;
     return delta.count() * 0.001;
 }
+
+// https://www.shadertoy.com/view/wtsSW4
+float gold_noise3(vec3 coordinate, float seed){
+    return 0.5 - fract(tan(distance(coordinate*vec3(seed+PHI*00000.1), vec3(PHI*00000.1, PI*00000.1, E)))*SQR2*10000.0);
+}
+
