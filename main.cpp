@@ -122,15 +122,6 @@ int main()
     r4->genNormalMinMax();
     r5->genNormalMinMax();
 
-    float uvStep = 2.0/(float)res.x;
-    // std::vector<vec2> displascements = 
-    // {
-    //     vec2(0.0, 0.0),
-    //     uvStep*vec2(0.1548, 0.0358),
-    //     uvStep*vec2(-0.0168, -1.0812),
-    //     uvStep*vec2(-0.7581, 0.5893),
-    //     uvStep*vec2(0.0589, -0.2568)
-    // };
     int nbSample = 1;
 
     PhongLight sun;

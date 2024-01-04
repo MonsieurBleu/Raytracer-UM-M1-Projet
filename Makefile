@@ -6,8 +6,13 @@ LINKFLAGS =
 # OBJ = obj/main.o obj/App.o obj/Utils.o obj/Shader.o obj/Camera.o obj/Uniforms.o obj/VertexBuffer.o obj/Mesh.o obj/Scene.o obj/Inputs.o obj/FrameBuffer.o obj/Textures.o obj/RenderPass.o obj/Timer.o obj/Globals.o
 # OBJ = $(wildcard obj/*.cpp)
 INCLUDE = -Iinclude 
-EXEC = RayTracer.exe
-DEL_win = del /Q /F
+ifeq ($(OS),Windows_NT)
+	EXEC = RayTracer.exe
+	RM = del /Q /F /S
+else
+	EXEC = RayTracer
+	RM = rm -f
+endif
 
 
 ODIR=obj
@@ -41,7 +46,7 @@ obj/%.o : src/%.cpp
 PHONY : clean
 
 clean : 
-	$(DEL_win) $(EXEC) obj\*.o
+	$(RM) $(EXEC) obj\*.o 
 
 countlines :
 	find ./ -type f \( -iname \*.cpp -o -iname \*.hpp -o -iname \*.frag -o -iname \*.vert -o -iname \*.geom \) | sed 's/.*/"&"/' | xargs  wc -l
