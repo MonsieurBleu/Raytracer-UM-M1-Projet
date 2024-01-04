@@ -85,7 +85,6 @@ rayContact Scene::getResult(vec3 ray, vec3 origin)
                 }
 
             shadow = 1.0 - shadow/j;
-
             
             lightResult += shadow == 0.f ? vec3(0.f) : vec3(shadow) * i.getLighting(firstContact, ray);
         }
@@ -125,7 +124,7 @@ rayContact Scene::getResultReflectivity(vec3 ray, vec3 origin, int maxIt)
 }
 
 
-rayContact Scene::getResultTranceparency(vec3 ray, vec3 origin, int maxIt)
+rayContact Scene::getResultTransparency(vec3 ray, vec3 origin, int maxIt)
 {
     rayContact contacts[maxIt+1];
     vec3 view[maxIt+1];

@@ -220,7 +220,7 @@ int main()
             vec3 far = vec3(spf)/spf.w;
             vec3 direction = normalize(far - camera.getPosition());
 
-            rayContact rc = scene.getResultTranceparency(direction, camera.getPosition(), 16);
+            rayContact rc = scene.getResultTransparency(direction, camera.getPosition(), 16);
 
             color = rc.color;
 

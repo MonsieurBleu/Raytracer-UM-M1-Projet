@@ -255,7 +255,6 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
         }
     );
 
-
     float medianCoord = node.triangles[size/2]->getCenter()[dCoord];
 
     node.median = medianCoord;
@@ -264,10 +263,9 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
     if(size <= 2)
         return;
 
-    node.frontChild = new MeshKDTreeNode;
-    node.backChild = new MeshKDTreeNode;
+    node.frontChild = std::make_shared<MeshKDTreeNode>();
+    node.backChild = std::make_shared<MeshKDTreeNode>();
 
-    /* New way of building better AABB*/
     if(&node == &tree)
     {
         node.max = vec3(-NO_INTERSECTION);
@@ -310,8 +308,6 @@ void Mesh::genKDNode(MeshKDTreeNode &node, int depth)
     }
     else
     {
-        delete node.frontChild;
-        delete node.backChild;
         node.frontChild = nullptr;
         node.backChild = nullptr;
         if(node.splitingAttempts <=2)
@@ -324,8 +320,6 @@ bool inInterval(float min, float max, float val)
 {
     return val >= min && val <= max;
 }
-
-#include <deque>
 
 const int gstackSize = 0x2000;
 MeshKDTreeNode* gstack[gstackSize];
@@ -392,13 +386,6 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
 
         if(tIn == NO_INTERSECTION || tOut < 0.f) continue;
 
-        char c = node.channel;
-
-        float tSplit = (node.median-origin[c])*inDotR[c];
-
-        bool invertChilds = ray[c] > 0.f;
-
-
         if(!node.backChild || !node.frontChild)
         {
             for(Triangle* i : node.triangles)
@@ -411,12 +398,18 @@ rayContact Mesh::traceKDNode(MeshKDTreeNode &firstNode, vec3 ray, vec3 origin)
             continue;
         }
 
+        char c = node.channel;
+
+        float tSplit = (node.median-origin[c])*inDotR[c];
+
+        bool invertChilds = ray[c] > 0.f;
+
         /*
             Method here :
             https://people.cs.vt.edu/yongcao/teaching/csx984/fall2011/documents/Lecture10_Acceleration_structure.pdf
         */
-        MeshKDTreeNode *nearChild = invertChilds ? node.backChild : node.frontChild;
-        MeshKDTreeNode *farChild  = invertChilds ? node.frontChild: node.backChild;
+        MeshKDTreeNode *nearChild = invertChilds ? node.backChild.get() : node.frontChild.get();
+        MeshKDTreeNode *farChild  = invertChilds ? node.frontChild.get() : node.backChild.get();
 
         if(tSplit <= tIn)
         {

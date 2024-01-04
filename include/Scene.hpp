@@ -20,5 +20,5 @@ class Scene
         rayContact trace(vec3 ray, vec3 origin);
         rayContact getResult(vec3 ray, vec3 origin);
         rayContact getResultReflectivity(vec3 ray, vec3 origin, int maxIt);
-        rayContact getResultTranceparency(vec3 ray, vec3 origin, int maxIt);
+        rayContact getResultTransparency(vec3 ray, vec3 origin, int maxIt);
 };

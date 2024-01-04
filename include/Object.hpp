@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <Texture.hpp>
+#include <memory>
 
 using namespace glm;
 
@@ -106,8 +107,8 @@ struct MeshKDTreeNode
     char channel;
     char splitingAttempts = 0;
     float median;
-    MeshKDTreeNode *frontChild = NULL;
-    MeshKDTreeNode *backChild = NULL;
+    std::shared_ptr<MeshKDTreeNode> frontChild = NULL;
+    std::shared_ptr<MeshKDTreeNode> backChild = NULL;
     vec3 max;
     vec3 min;
     std::vector<Triangle*> triangles;
